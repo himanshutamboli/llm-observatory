@@ -3,139 +3,89 @@
 [![CI](https://github.com/himanshutamboli/llm-observatory/actions/workflows/ci.yml/badge.svg)](https://github.com/himanshutamboli/llm-observatory/actions/workflows/ci.yml)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
 [![Ruff](https://img.shields.io/badge/lint-ruff-orange.svg)](https://github.com/astral-sh/ruff)
-[![status](https://img.shields.io/badge/status-building-blue.svg)](docs/design.md)
+[![status](https://img.shields.io/badge/status-v1.0-brightgreen.svg)](docs/architecture.md)
 
-> An **LLM observability & evaluation platform** — capture every LLM call as a
-> trace, score it (offline on datasets + online on live traffic), detect quality
-> regressions across model/prompt versions, and see it all in a dashboard with
-> alerting. *Datadog + a test suite, for LLM apps.*
+> An **LLM observability & evaluation platform**: capture every LLM call as a trace, score it
+> (offline on datasets + online on live traffic), **detect quality regressions** across
+> prompt/model versions, and see it all in a dashboard with alerting. *Datadog + a test suite,
+> for LLM apps.*
 
 ## Demo
 
-![Dashboard — trace trends showing a regression](docs/dashboard.png)
+![Dashboard — trends catching a regression](docs/dashboard.png)
 
-*Cost/latency and eval pass-rate over time — the recent window shows a real regression
-(prompt-v2 degraded), which regression detection and alerting both catch. One command sets
-it up: `uv run python -m llm_observatory.demo` → `uv run streamlit run app.py`. Recording
-script: [`docs/demo_script.md`](docs/demo_script.md).*
+*One command populates a full scenario; the dashboard shows it. In the recent window latency
+spikes and eval pass-rate drops — a **real regression** (prompt-v2 degraded), which regression
+detection and alerting both catch.*
 
-## Status
+```bash
+uv sync --dev
+uv run alembic upgrade head                  # create the schema
+uv run python -m llm_observatory.demo        # populate history + a regression + live traffic
+uv run streamlit run app.py                  # explore: traces → detail → trends
+```
 
-🏗️ **Building** (Days 22–35). Full PRD + architecture in **[`docs/design.md`](docs/design.md)**.
+Recording walkthrough: [`docs/demo_script.md`](docs/demo_script.md).
 
-- **Day 22 ✅ — data model + migrations.** `traces`, `spans`, `eval_scores` as SQLAlchemy 2.0
-  models with a SQLite→Postgres-ready storage layer and Alembic migrations.
-- **Day 23 ✅ — instrumentation SDK.** `trace`/`span` context managers + an `@observe`
-  decorator that capture input/output, latency, tokens, and cost; pluggable `Writer`
-  (memory for tests, DB for persistence).
-- **Day 24 ✅ — query layer.** `store.py`: list/filter traces (session, model, prompt
-  version, status, time window) with pagination + count, and fetch a single trace with
-  its spans — the read side the dashboard sits on.
-- **Day 25 ✅ — offline eval runner.** `offline_eval.py`: run a target over a versioned
-  dataset inside traces, score with pluggable evaluators, persist `eval_score` rows tagged
-  with `dataset_id` / `run_id` / `config_version`.
-- **Day 26 ✅ — online eval sampler.** `online_eval.py`: deterministically sample live
-  traces (by id-hash), score with label-free trace evaluators (no-error, latency/cost
-  budget), dedup, and persist `mode="online"` scores off the hot path (async wrapper).
-- **Day 27 ✅ — regression detection.** `regression.py`: compare eval-score distributions
-  (n / mean / p50 / p95 / pass-rate) across `config_version`s and flag drops beyond a
-  threshold. The demo runs a good v1 and a degraded v2 and **detects** the regression.
-- **Day 28 ✅ — architecture writeup.** [`docs/architecture.md`](docs/architecture.md):
-  data-flow diagram, component walkthrough, data model, eval taxonomy, design decisions.
-- **Day 29 ✅ — dashboard (trace list).** Streamlit `app.py` over the query layer: filter
-  traces by model / status / session / prompt version, with counts. `seed.py` populates
-  demo data. `uv run streamlit run app.py`.
-- **Day 30 ✅ — trace detail.** Deep-linkable (`?trace=…`) single-trace view: header metrics,
-  per-span i/o + tokens/cost/latency (expanders), and attached eval scores.
-- **Day 31 ✅ — trends.** `analytics.py` time-bucketed aggregates (portable, Python-side) +
-  dashboard charts: cost & latency by day, eval pass-rate by day. The seed spreads traces
-  over ~14 days with a regression in the recent window, so the trend is visible.
-- **Day 32 ✅ — alerting.** `alerting.py`: threshold rules (error rate / avg latency /
-  pass-rate) over a rolling window → pluggable notifier (logging, webhook/Slack, memory).
-  Fires on the seeded regression: error_rate 0.21 > 0.15, pass_rate 0.79 < 0.85, latency
-  2176 > 2000.
-- **Day 33 ✅ — demo scenario.** `demo.py`: a mock support-bot instrumented with the SDK
-  (`observed_answer`), plus `run_demo` that populates a full scenario — backdated history +
-  live app calls + online scoring + alert check. `uv run python -m llm_observatory.demo`.
-- **Day 34 ✅ — docs + demo.** Dashboard screenshot (regression visible in trends), a
-  60–90s recording script ([`docs/demo_script.md`](docs/demo_script.md)), and the finalized
-  [`docs/architecture.md`](docs/architecture.md).
+## Why this exists
+
+LLM apps fail silently. A prompt tweak or model upgrade can quietly degrade answer quality,
+inflate cost, or add latency — and teams find out from users, not dashboards. Traditional APM
+captures latency and errors but not *quality*. This platform makes trace capture, evaluation,
+and **regression detection** first-class, so a bad change is caught by a chart and an alert
+instead of a support ticket.
 
 ## Architecture
 
 ```
- instrumented app → SDK (trace/span) → Writer → storage (traces·spans·eval_scores)
-                                                    │
+ instrumented app → SDK (trace/span) → Writer → storage (traces · spans · eval_scores)
+                                                    │  SQLite (dev) / Postgres (prod)
                     ┌───────────────────────────────┼───────────────────────────┐
                     ▼                                ▼                           ▼
               query layer                offline + online eval           regression
-              (list/filter)              (dataset & live traffic)        (version deltas)
-                    └──────────────► dashboard + alerting (planned) ◄─────────────┘
+              (list/filter)              (datasets & live traffic)       (version deltas)
+                    └──────────────► dashboard (traces/detail/trends) + alerting ◄────┘
 ```
 
-Full diagram, component table, and design decisions: **[`docs/architecture.md`](docs/architecture.md)**.
+Full component walkthrough, data model, and design decisions: **[`docs/architecture.md`](docs/architecture.md)**
+· PRD: [`docs/design.md`](docs/design.md).
 
-## Quickstart
+## What it does
 
-```bash
-uv sync --dev
-uv run alembic upgrade head                     # create the schema
-uv run python -m llm_observatory.demo           # populate a full realistic scenario
-uv run streamlit run app.py                     # explore it: traces, detail, trends
-uv run pytest                                    # full suite (incl. migration tests)
-```
+- **Instrumentation SDK** — `trace`/`span` context managers + an `@observe` decorator capture
+  input/output, latency, tokens, and cost (derived from a model price table). Capture is
+  decoupled from storage via a `Writer` seam.
+- **Storage + query** — SQLAlchemy 2.0 models (portable SQLite→Postgres) with Alembic
+  migrations *validated in CI*; a query layer to filter/paginate traces and fetch a trace tree.
+- **Offline eval** — run a target over a **versioned dataset**, score with pluggable evaluators,
+  persist results tagged `dataset_id` / `run_id` / `config_version`.
+- **Online eval** — deterministically sample live traces and score them off the hot path with
+  label-free evaluators (no-error, latency/cost budgets).
+- **Regression detection** — compare score distributions (mean / p50 / p95 / pass-rate) across
+  versions and flag drops beyond a threshold.
+- **Dashboard** — Streamlit: trace list with filters, deep-linkable trace detail (span tree +
+  scores), and trends over time.
+- **Alerting** — threshold rules over a rolling window → pluggable notifier (logging,
+  Slack/webhook, memory).
 
-Individual pieces: `python -m llm_observatory.{sdk,offline_eval,online_eval,regression,alerting}`.
+## Design highlights
 
-## Instrumentation SDK (Day 23)
+- Portable column types (string UUIDs, generic JSON) — the SQLite→Postgres path is real.
+- Migrations tested (`upgrade`/`downgrade`) in CI, so a broken migration fails the pipeline.
+- Versioned eval configs make runs comparable → regression detection is a `GROUP BY` away.
+- Deterministic id-hash online sampling → reproducible, idempotent (dedup by trace+evaluator).
+- Regression flags on mean *or* pass-rate drop; stdlib-only stats, no scipy.
+- Every layer tested (41 tests); the whole engine runs from one demo command.
 
-What an app imports to get observed — capture is decoupled from storage via a `Writer`:
+## Tech
 
-```python
-tracer = Tracer(DBWriter(session_factory))
-with tracer.trace("rag_answer", model="claude-opus-4-8") as t:
-    with t.span("retrieve", kind="retrieval", input=query) as s:
-        s.set_output(str(chunks))
-    with t.span("generate", kind="llm", model="claude-opus-4-8") as s:
-        s.set_output(answer)
-        s.set_usage(prompt_tokens=1200, completion_tokens=180)  # cost derived from model price
-```
-
-The trace rolls up total tokens/cost from its spans, records latency, and marks
-`status="error"` (then re-raises) if the body throws. `uv run python -m llm_observatory.sdk`
-runs a demo that persists a trace and prints its rollup (2 spans, 1,380 tokens, $0.0105).
-
-## Data model (Day 22)
-
-A **trace** is one logical operation (e.g. a RAG answer); it holds a tree of **spans**
-(llm / retrieval / tool / function) capturing i/o, tokens, cost, latency; **eval scores**
-attach to a trace or span, from offline dataset runs or online sampling.
-
-- **Portable types** — string UUIDs, generic `JSON`, no dialect-specific columns — so the
-  same models run on SQLite (dev) and Postgres (`LLMOBS_DATABASE_URL`).
-- **Alembic migrations** — the initial schema migration is committed and validated in CI
-  (`alembic upgrade head` on a fresh DB, and a reversibility check).
-
-```bash
-uv sync --dev
-uv run alembic upgrade head    # create the schema (SQLite by default)
-uv run pytest                  # model CRUD/cascade + migration tests
-```
-
-Why design-first for a flagship: writing the data model and component boundaries down
-before building prevents the mid-build rewrites that sink ambitious projects.
-
-## Planned architecture (summary)
-
-Instrumentation SDK → Ingestion API → Storage (traces / spans / eval-scores) →
-offline + online eval runners → regression detection → dashboard + alerting.
-Full diagram and schemas in [`docs/design.md`](docs/design.md).
+Python 3.13 · SQLAlchemy 2.0 + Alembic · Streamlit · `uv` · `ruff` · `pytest` · GitHub Actions.
 
 ## Cross-link
 
-On **Day 40**, the `agentic-workflow` flagship gets instrumented *by this
-platform* — every agent run traced and scored here. That's the highest-signal
-link in the portfolio.
+On **Day 40** of the portfolio, the `agentic-workflow` flagship is instrumented *by this
+platform* — every agent run traced and scored here. That mutual citation is the strongest
+signal across the repos.
 
 ## License
 
