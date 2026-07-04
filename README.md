@@ -3,7 +3,7 @@
 [![CI](https://github.com/himanshutamboli/llm-observatory/actions/workflows/ci.yml/badge.svg)](https://github.com/himanshutamboli/llm-observatory/actions/workflows/ci.yml)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
 [![Ruff](https://img.shields.io/badge/lint-ruff-orange.svg)](https://github.com/astral-sh/ruff)
-[![status](https://img.shields.io/badge/status-in%20design-yellow.svg)](docs/design.md)
+[![status](https://img.shields.io/badge/status-building-blue.svg)](docs/design.md)
 
 > An **LLM observability & evaluation platform** — capture every LLM call as a
 > trace, score it (offline on datasets + online on live traffic), detect quality
@@ -12,14 +12,30 @@
 
 ## Status
 
-🚧 **In design.** This repo is initialized and the full PRD + architecture live in
-**[`docs/design.md`](docs/design.md)** — data model, components, eval taxonomy,
-tech choices, and a day-by-day build plan. Implementation lands in Days 22–35 of
-the portfolio plan.
+🏗️ **Building** (Days 22–35). Full PRD + architecture in **[`docs/design.md`](docs/design.md)**.
 
-Why design-first: this is a flagship system (traces, evals, regression detection,
-dashboard, alerting). Writing the data model and component boundaries down now
-prevents the mid-build rewrites that sink ambitious projects.
+- **Day 22 ✅ — data model + migrations.** `traces`, `spans`, `eval_scores` as SQLAlchemy 2.0
+  models with a SQLite→Postgres-ready storage layer and Alembic migrations.
+
+## Data model (Day 22)
+
+A **trace** is one logical operation (e.g. a RAG answer); it holds a tree of **spans**
+(llm / retrieval / tool / function) capturing i/o, tokens, cost, latency; **eval scores**
+attach to a trace or span, from offline dataset runs or online sampling.
+
+- **Portable types** — string UUIDs, generic `JSON`, no dialect-specific columns — so the
+  same models run on SQLite (dev) and Postgres (`LLMOBS_DATABASE_URL`).
+- **Alembic migrations** — the initial schema migration is committed and validated in CI
+  (`alembic upgrade head` on a fresh DB, and a reversibility check).
+
+```bash
+uv sync --dev
+uv run alembic upgrade head    # create the schema (SQLite by default)
+uv run pytest                  # model CRUD/cascade + migration tests
+```
+
+Why design-first for a flagship: writing the data model and component boundaries down
+before building prevents the mid-build rewrites that sink ambitious projects.
 
 ## Planned architecture (summary)
 

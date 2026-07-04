@@ -21,3 +21,7 @@ wheels/
 .DS_Store
 .idea/
 .vscode/
+
+# Local databases (schema is defined by models + Alembic migrations)
+*.db
+data/
