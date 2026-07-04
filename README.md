@@ -28,6 +28,9 @@
 - **Day 26 ✅ — online eval sampler.** `online_eval.py`: deterministically sample live
   traces (by id-hash), score with label-free trace evaluators (no-error, latency/cost
   budget), dedup, and persist `mode="online"` scores off the hot path (async wrapper).
+- **Day 27 ✅ — regression detection.** `regression.py`: compare eval-score distributions
+  (n / mean / p50 / p95 / pass-rate) across `config_version`s and flag drops beyond a
+  threshold. The demo runs a good v1 and a degraded v2 and **detects** the regression.
 
 ## Instrumentation SDK (Day 23)
 
