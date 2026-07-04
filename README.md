@@ -45,6 +45,9 @@
   pass-rate) over a rolling window → pluggable notifier (logging, webhook/Slack, memory).
   Fires on the seeded regression: error_rate 0.21 > 0.15, pass_rate 0.79 < 0.85, latency
   2176 > 2000.
+- **Day 33 ✅ — demo scenario.** `demo.py`: a mock support-bot instrumented with the SDK
+  (`observed_answer`), plus `run_demo` that populates a full scenario — backdated history +
+  live app calls + online scoring + alert check. `uv run python -m llm_observatory.demo`.
 
 ## Architecture
 
@@ -65,12 +68,12 @@ Full diagram, component table, and design decisions: **[`docs/architecture.md`](
 ```bash
 uv sync --dev
 uv run alembic upgrade head                     # create the schema
-uv run python -m llm_observatory.sdk            # emit a demo trace
-uv run python -m llm_observatory.offline_eval   # score a versioned dataset
-uv run python -m llm_observatory.online_eval    # sample + score live traces
-uv run python -m llm_observatory.regression     # detect a v1->v2 regression
+uv run python -m llm_observatory.demo           # populate a full realistic scenario
+uv run streamlit run app.py                     # explore it: traces, detail, trends
 uv run pytest                                    # full suite (incl. migration tests)
 ```
+
+Individual pieces: `python -m llm_observatory.{sdk,offline_eval,online_eval,regression,alerting}`.
 
 ## Instrumentation SDK (Day 23)
 
