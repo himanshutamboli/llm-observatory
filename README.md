@@ -31,6 +31,34 @@
 - **Day 27 ✅ — regression detection.** `regression.py`: compare eval-score distributions
   (n / mean / p50 / p95 / pass-rate) across `config_version`s and flag drops beyond a
   threshold. The demo runs a good v1 and a degraded v2 and **detects** the regression.
+- **Day 28 ✅ — architecture writeup.** [`docs/architecture.md`](docs/architecture.md):
+  data-flow diagram, component walkthrough, data model, eval taxonomy, design decisions.
+
+## Architecture
+
+```
+ instrumented app → SDK (trace/span) → Writer → storage (traces·spans·eval_scores)
+                                                    │
+                    ┌───────────────────────────────┼───────────────────────────┐
+                    ▼                                ▼                           ▼
+              query layer                offline + online eval           regression
+              (list/filter)              (dataset & live traffic)        (version deltas)
+                    └──────────────► dashboard + alerting (planned) ◄─────────────┘
+```
+
+Full diagram, component table, and design decisions: **[`docs/architecture.md`](docs/architecture.md)**.
+
+## Quickstart
+
+```bash
+uv sync --dev
+uv run alembic upgrade head                     # create the schema
+uv run python -m llm_observatory.sdk            # emit a demo trace
+uv run python -m llm_observatory.offline_eval   # score a versioned dataset
+uv run python -m llm_observatory.online_eval    # sample + score live traces
+uv run python -m llm_observatory.regression     # detect a v1->v2 regression
+uv run pytest                                    # full suite (incl. migration tests)
+```
 
 ## Instrumentation SDK (Day 23)
 
