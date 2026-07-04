@@ -41,6 +41,10 @@
 - **Day 31 ✅ — trends.** `analytics.py` time-bucketed aggregates (portable, Python-side) +
   dashboard charts: cost & latency by day, eval pass-rate by day. The seed spreads traces
   over ~14 days with a regression in the recent window, so the trend is visible.
+- **Day 32 ✅ — alerting.** `alerting.py`: threshold rules (error rate / avg latency /
+  pass-rate) over a rolling window → pluggable notifier (logging, webhook/Slack, memory).
+  Fires on the seeded regression: error_rate 0.21 > 0.15, pass_rate 0.79 < 0.85, latency
+  2176 > 2000.
 
 ## Architecture
 
