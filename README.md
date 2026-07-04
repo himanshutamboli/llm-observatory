@@ -36,6 +36,8 @@
 - **Day 29 ✅ — dashboard (trace list).** Streamlit `app.py` over the query layer: filter
   traces by model / status / session / prompt version, with counts. `seed.py` populates
   demo data. `uv run streamlit run app.py`.
+- **Day 30 ✅ — trace detail.** Deep-linkable (`?trace=…`) single-trace view: header metrics,
+  per-span i/o + tokens/cost/latency (expanders), and attached eval scores.
 
 ## Architecture
 
