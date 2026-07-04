@@ -33,6 +33,9 @@
   threshold. The demo runs a good v1 and a degraded v2 and **detects** the regression.
 - **Day 28 ✅ — architecture writeup.** [`docs/architecture.md`](docs/architecture.md):
   data-flow diagram, component walkthrough, data model, eval taxonomy, design decisions.
+- **Day 29 ✅ — dashboard (trace list).** Streamlit `app.py` over the query layer: filter
+  traces by model / status / session / prompt version, with counts. `seed.py` populates
+  demo data. `uv run streamlit run app.py`.
 
 ## Architecture
 
