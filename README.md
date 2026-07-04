@@ -10,6 +10,15 @@
 > regressions across model/prompt versions, and see it all in a dashboard with
 > alerting. *Datadog + a test suite, for LLM apps.*
 
+## Demo
+
+![Dashboard — trace trends showing a regression](docs/dashboard.png)
+
+*Cost/latency and eval pass-rate over time — the recent window shows a real regression
+(prompt-v2 degraded), which regression detection and alerting both catch. One command sets
+it up: `uv run python -m llm_observatory.demo` → `uv run streamlit run app.py`. Recording
+script: [`docs/demo_script.md`](docs/demo_script.md).*
+
 ## Status
 
 🏗️ **Building** (Days 22–35). Full PRD + architecture in **[`docs/design.md`](docs/design.md)**.
@@ -48,6 +57,9 @@
 - **Day 33 ✅ — demo scenario.** `demo.py`: a mock support-bot instrumented with the SDK
   (`observed_answer`), plus `run_demo` that populates a full scenario — backdated history +
   live app calls + online scoring + alert check. `uv run python -m llm_observatory.demo`.
+- **Day 34 ✅ — docs + demo.** Dashboard screenshot (regression visible in trends), a
+  60–90s recording script ([`docs/demo_script.md`](docs/demo_script.md)), and the finalized
+  [`docs/architecture.md`](docs/architecture.md).
 
 ## Architecture
 
