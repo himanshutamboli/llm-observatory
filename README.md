@@ -19,6 +19,9 @@
 - **Day 23 ✅ — instrumentation SDK.** `trace`/`span` context managers + an `@observe`
   decorator that capture input/output, latency, tokens, and cost; pluggable `Writer`
   (memory for tests, DB for persistence).
+- **Day 24 ✅ — query layer.** `store.py`: list/filter traces (session, model, prompt
+  version, status, time window) with pagination + count, and fetch a single trace with
+  its spans — the read side the dashboard sits on.
 
 ## Instrumentation SDK (Day 23)
 
