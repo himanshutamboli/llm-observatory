@@ -25,6 +25,9 @@
 - **Day 25 ✅ — offline eval runner.** `offline_eval.py`: run a target over a versioned
   dataset inside traces, score with pluggable evaluators, persist `eval_score` rows tagged
   with `dataset_id` / `run_id` / `config_version`.
+- **Day 26 ✅ — online eval sampler.** `online_eval.py`: deterministically sample live
+  traces (by id-hash), score with label-free trace evaluators (no-error, latency/cost
+  budget), dedup, and persist `mode="online"` scores off the hot path (async wrapper).
 
 ## Instrumentation SDK (Day 23)
 
