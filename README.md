@@ -16,6 +16,27 @@
 
 - **Day 22 ✅ — data model + migrations.** `traces`, `spans`, `eval_scores` as SQLAlchemy 2.0
   models with a SQLite→Postgres-ready storage layer and Alembic migrations.
+- **Day 23 ✅ — instrumentation SDK.** `trace`/`span` context managers + an `@observe`
+  decorator that capture input/output, latency, tokens, and cost; pluggable `Writer`
+  (memory for tests, DB for persistence).
+
+## Instrumentation SDK (Day 23)
+
+What an app imports to get observed — capture is decoupled from storage via a `Writer`:
+
+```python
+tracer = Tracer(DBWriter(session_factory))
+with tracer.trace("rag_answer", model="claude-opus-4-8") as t:
+    with t.span("retrieve", kind="retrieval", input=query) as s:
+        s.set_output(str(chunks))
+    with t.span("generate", kind="llm", model="claude-opus-4-8") as s:
+        s.set_output(answer)
+        s.set_usage(prompt_tokens=1200, completion_tokens=180)  # cost derived from model price
+```
+
+The trace rolls up total tokens/cost from its spans, records latency, and marks
+`status="error"` (then re-raises) if the body throws. `uv run python -m llm_observatory.sdk`
+runs a demo that persists a trace and prints its rollup (2 spans, 1,380 tokens, $0.0105).
 
 ## Data model (Day 22)
 
