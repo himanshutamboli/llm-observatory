@@ -38,6 +38,9 @@
   demo data. `uv run streamlit run app.py`.
 - **Day 30 ✅ — trace detail.** Deep-linkable (`?trace=…`) single-trace view: header metrics,
   per-span i/o + tokens/cost/latency (expanders), and attached eval scores.
+- **Day 31 ✅ — trends.** `analytics.py` time-bucketed aggregates (portable, Python-side) +
+  dashboard charts: cost & latency by day, eval pass-rate by day. The seed spreads traces
+  over ~14 days with a regression in the recent window, so the trend is visible.
 
 ## Architecture
 

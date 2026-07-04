@@ -9,10 +9,13 @@ Run with:  uv run streamlit run app.py
 import streamlit as st
 from sqlalchemy import distinct, select
 
+from llm_observatory.analytics import cost_latency_series, pass_rate_series
 from llm_observatory.db import get_engine, init_db, session_factory
 from llm_observatory.models import Trace
 from llm_observatory.seed import seed_demo
 from llm_observatory.store import TraceFilter, count_traces, get_scores, get_trace, list_traces
+
+EVALUATORS = ["no_error", "latency_budget", "cost_budget"]
 
 st.set_page_config(page_title="llm-observatory", page_icon="🛰️", layout="wide")
 
@@ -150,3 +153,38 @@ if choice != "—":
     st.query_params["trace"] = choice
     st.divider()
     render_detail(factory, choice)
+
+# --- Trends (respects the active filters) ---
+st.divider()
+st.header("Trends")
+with factory() as s:
+    cost_latency = cost_latency_series(s, trace_filter)
+    score_series = {ev: pass_rate_series(s, ev, trace_filter) for ev in EVALUATORS}
+
+if cost_latency:
+    periods = [r["period"] for r in cost_latency]
+    left, right = st.columns(2)
+    with left:
+        st.caption("Total cost by day ($)")
+        st.line_chart(
+            {"period": periods, "total_cost_usd": [r["total_cost_usd"] for r in cost_latency]},
+            x="period",
+            y="total_cost_usd",
+        )
+    with right:
+        st.caption("Avg latency by day (ms)")
+        st.line_chart(
+            {"period": periods, "avg_latency_ms": [r["avg_latency_ms"] for r in cost_latency]},
+            x="period",
+            y="avg_latency_ms",
+        )
+
+    all_periods = sorted({r["period"] for ser in score_series.values() for r in ser})
+    pass_data = {"period": all_periods}
+    for ev, ser in score_series.items():
+        by_period = {r["period"]: r["pass_rate"] for r in ser}
+        pass_data[ev] = [by_period.get(p) for p in all_periods]
+    st.caption("Eval pass-rate by day")
+    st.line_chart(pass_data, x="period", y=EVALUATORS)
+else:
+    st.info("No data for trends under the current filters.")
