@@ -22,6 +22,9 @@
 - **Day 24 ✅ — query layer.** `store.py`: list/filter traces (session, model, prompt
   version, status, time window) with pagination + count, and fetch a single trace with
   its spans — the read side the dashboard sits on.
+- **Day 25 ✅ — offline eval runner.** `offline_eval.py`: run a target over a versioned
+  dataset inside traces, score with pluggable evaluators, persist `eval_score` rows tagged
+  with `dataset_id` / `run_id` / `config_version`.
 
 ## Instrumentation SDK (Day 23)
 

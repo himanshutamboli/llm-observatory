@@ -1,0 +1,5 @@
+{"input": "capital of France", "expected": "Paris"}
+{"input": "capital of Japan", "expected": "Tokyo"}
+{"input": "capital of Italy", "expected": "Rome"}
+{"input": "capital of Germany", "expected": "Berlin"}
+{"input": "capital of Australia", "expected": "Canberra"}
